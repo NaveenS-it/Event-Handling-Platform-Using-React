@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  name      String
+  email     String    @unique
+  password  String
+  role      Role      @default(USER)
+  createdAt DateTime  @default(now())
+  bookings  Booking[]
+}
+
+model Event {
+  id          Int          @id @default(autoincrement())
+  title       String
+  description String
+  date        DateTime
+  location    String
+  price       Float
+  imageUrl    String?
+  createdAt   DateTime     @default(now())
+  bookings    Booking[]
+  ticketTiers TicketTier[]
+}
+
+model TicketTier {
+  id       Int      @id @default(autoincrement())
+  eventId  Int
+  name     String
+  price    Float
+  quantity Int
+  event    Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  tickets  Ticket[]
+}
+
+model Booking {
+  id               Int           @id @default(autoincrement())
+  bookingReference String?       @unique
+  userId           Int
+  eventId          Int
+  tickets          Int           @default(1)
+  status           BookingStatus @default(CONFIRMED)
+  createdAt        DateTime      @default(now())
+  event            Event         @relation(fields: [eventId], references: [id])
+  user             User          @relation(fields: [userId], references: [id])
+  ticketsList      Ticket[]
+
+  @@unique([userId, eventId])
+}
+
+model Ticket {
+  id         Int        @id @default(autoincrement())
+  bookingId  Int
+  tierId     Int
+  ticketCode String     @unique
+  qrCodeData String // A data URL for the QR code
+  tierName   String?
+  booking    Booking    @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  tier       TicketTier @relation(fields: [tierId], references: [id], onDelete: Cascade)
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+}
